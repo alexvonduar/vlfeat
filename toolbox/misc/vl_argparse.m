@@ -53,7 +53,7 @@ function [opts, args] = vl_argparse(opts, args, varargin)
 %
 %   See also: VL_HELP().
 
-% Copyright (C) 2017 Andrea Vedaldi, Karel Lenc and Joao F. Henriques.
+% Copyright (C) 2017,18 Andrea Vedaldi, Karel Lenc and Joao F. Henriques.
 % Copyright (C) 2015-16 Andrea Vedaldi and Karel Lenc.
 % Copyright (C) 2007-12 Andrea Vedaldi and Brian Fulkerson.
 % All rights reserved.
@@ -61,14 +61,14 @@ function [opts, args] = vl_argparse(opts, args, varargin)
 % Tishis file is part of the VLFeat library and is made available under
 % the terms of the BSD license (see the COPYING file).
 
-if ~isstruct(opts) && ~isobject(opts), error('OPTS must be a structure') ; end
+if ~isstruct(opts) && ~isobject(opts), error('vl:invalidArgument', 'OPTS must be a structure') ; end
 if ~iscell(args), args = {args} ; end
 
 recursive = true ;
 merge = false ;
 
 if numel(varargin) > 2
-  error('There can be at most two options.') ;
+  error('vl:invalidArgument', 'There can be at most two options.') ;
 end
 
 for i = 1:numel(varargin)
@@ -78,7 +78,7 @@ for i = 1:numel(varargin)
     case 'merge'
       merge = true ;
     otherwise
-      error('Unknown option specified.') ;
+      error('vl:invalidArgument', 'Unknown option specified.') ;
   end
 end
 
@@ -105,7 +105,7 @@ while ai <= numel(args)
   end
 
   if ~ischar(args{ai})
-    error('Expected either a param-value pair or a structure.') ;
+    error('vl:invalidArgument', 'Expected either a param-value pair or a structure.') ;
   end
 
   param = args{ai} ;
@@ -125,7 +125,7 @@ while ai <= numel(args)
     if merge  % Merge unknown fields, instead of erroring or leaving it
       field = param ;
     elseif nargout <= 1
-      error('Unknown parameter ''%s''', param) ;
+      error('vl:invalidArgument', 'Unknown parameter ''%s''', param) ;
     else
       keep([ai,ai+1]) = true ;
       ai = ai + 2 ;
@@ -143,7 +143,7 @@ while ai <= numel(args)
       % recursively. Check the original options (OPTS_), before OPTS gets
       % modified and possibly changes it from empty to non-empty.
       if ~isstruct(value)
-        error('Cannot assign a non-struct value to the struct parameter ''%s''.', ...
+        error('vl:invalidArgument', 'Cannot assign a non-struct value to the struct parameter ''%s''.', ...
           field) ;
       end
       if nargout > 1

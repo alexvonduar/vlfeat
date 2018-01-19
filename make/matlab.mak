@@ -2,7 +2,7 @@
 # description: Build MATALB toolbox
 # author: Andrea Vedaldi
 
-# Copyright (C) 2013-14 Andrea Vedaldi.
+# Copyright (C) 2013-14,18 Andrea Vedaldi.
 # Copyright (C) 2007-12 Andrea Vedaldi and Brian Fulkerson.
 # All rights reserved.
 #
@@ -20,12 +20,6 @@ MATLAB_VER ?= 0 # will be determined automatically
 
 # transform in immediate for efficiency
 MATLAB_PATH := $(MATLAB_PATH)
-CHRPATH := chrpath
-CHRPATH_VERSION := $(shell $(CHRPATH) --version 2>/dev/null)
-
-ifndef CHRPATH_VERSION
-$(warning "No chrpath found, consider doing apt-get install chrpath")
-endif
 
 # if expand to empty string, set to empty string for use with ifdef
 ifeq ($(MATLAB_PATH),)
@@ -79,12 +73,26 @@ $(MEX_BINDIR)/matlabver.mak: $(mex-dir)
 "fprintf(f,'MATLAB_VER=%d',[1e4 1e2 1]*sscanf(version,'%d.%d.%d'));fclose(f);exit();"
 
 ifdef MATLAB_PATH
-ifeq ($(filter $(no_dep_targets), $(MAKECMDGOALS)),)
+ifneq ($(filter-out $(no_dep_targets), $(MAKECMDGOALS)),)
 -include $(MEX_BINDIR)/matlabver.mak
 endif
+else
+$(info MATLAB support disabled)
 endif
 
+ifeq ($(call gt,$(MATLAB_VER),80400),)
+# new style
+$(info Detected MATLAB 2014b or greater: adjusting escape method for MEX)
 escape =$(1)
+else
+ifeq ($(call gt,$(MATLAB_VER),1),)
+# old style
+$(info Detected MATLAB 2013b or earlier: adjusting escape method for MEX)
+escape =$(subst $$,\\$$,$(1))
+else
+$(info The MALTAB version will be detected in the next phase of Make)
+endif
+endif
 
 # --------------------------------------------------------------------
 #                                                  Prepare MEX options
@@ -241,10 +249,10 @@ $(MEX_BINDIR)/lib$(DLL_NAME).dylib : $(mex-dir) $(dll_obj)
 	    -current_version $(VER)						\
 	    -isysroot $(SDKROOT)						\
 	    $(dll_obj)								\
-	    $(filter-out -fopenmp, $(DLL_LDFLAGS))                              \
 	    $(if $(DISABLE_OPENMP),,-L$(MATLAB_PATH)/bin/$(ARCH)/)              \
 	    $(if $(DISABLE_OPENMP),,-L$(MATLAB_PATH)/sys/os/$(ARCH)/ -liomp5)	\
-	   -o $@
+            $(filter-out -fopenmp, $(DLL_LDFLAGS))                              \
+	    -o $@
 
 $(MEX_BINDIR)/lib$(DLL_NAME).so : $(mex-dir) $(dll_obj)
 	$(call C,CC) -shared							\
@@ -269,9 +277,6 @@ $(MEX_BINDIR)/%.$(MEX_SUFFIX) : %.c $(mex-dir) $(mex_dll)
 	    "$(<)"								\
 	    $(MEX_LDFLAGS)							\
 	       -outdir "$(dir $(@))"
-ifdef CHRPATH_VERSION
-	$(call C,CHRPATH) -r '$$ORIGIN/' $(@)
-endif
 
 mex-info:
 	$(call echo-title,MATLAB support)
